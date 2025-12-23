@@ -2,13 +2,10 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# copy package files
 COPY app/package*.json ./
 
-# 🔥 FIX HERE
 RUN npm install --legacy-peer-deps
 
-# copy full app
 COPY app/ .
 
 RUN npm run build
@@ -19,4 +16,5 @@ WORKDIR /app
 COPY --from=builder /app ./
 
 EXPOSE 3000
-CMD ["npm", "start"]
+
+CMD ["npm", "run", "start", "--", "-p", "3000", "-H", "0.0.0.0"]
