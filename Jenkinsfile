@@ -20,60 +20,58 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $ECR_REPO:$IMAGE_TAG .'
+                sh """
+                docker build \
+                  -t ${ECR_REPO}:${IMAGE_TAG} \
+                  -f docker/Dockerfile .
+                """
             }
         }
 
         stage('Login to ECR') {
             steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws-ecr-creds'
-                ]]) {
-                    sh '''
-                    aws ecr get-login-password --region $AWS_REGION | \
-                    docker login --username AWS --password-stdin \
-                    $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-                    '''
-                }
+                sh """
+                aws ecr get-login-password --region ${AWS_REGION} | \
+                docker login --username AWS --password-stdin \
+                ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+                """
             }
         }
 
         stage('Push Image') {
             steps {
-                sh '''
-                docker tag $ECR_REPO:$IMAGE_TAG \
-                $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG
+                sh """
+                docker tag ${ECR_REPO}:${IMAGE_TAG} \
+                ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
 
                 docker push \
-                $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG
-                '''
+                ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
+                """
             }
         }
 
         stage('Deploy on EC2') {
             steps {
-                sh '''
-                docker stop $CONTAINER || true
-                docker rm $CONTAINER || true
+                sh """
+                docker stop ${CONTAINER} || true
+                docker rm ${CONTAINER} || true
 
                 docker run -d \
-                  --name $CONTAINER \
-                  -p $APP_PORT:$APP_PORT \
+                  --name ${CONTAINER} \
+                  -p ${APP_PORT}:${APP_PORT} \
                   --restart always \
-                  $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG
-                '''
+                  ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
+                """
             }
         }
     }
 
     post {
         success {
-            echo "✅ Build & Deploy Successful"
+            echo "✅ Build, Push & Deploy completed successfully"
         }
         failure {
-            echo "❌ Pipeline Failed"
+            echo "❌ Pipeline FAILED"
         }
     }
 }
-
