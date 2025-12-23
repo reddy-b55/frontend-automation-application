@@ -23,7 +23,7 @@ pipeline {
                 sh """
                 docker build \
                   -t ${ECR_REPO}:${IMAGE_TAG} \
-                  -f docker/Dockerfile .
+                  -f docker/dockerfile .
                 """
             }
         }
