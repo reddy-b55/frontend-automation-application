@@ -6,7 +6,7 @@ pipeline {
         ACCOUNT_ID = "424858915041"
         ECR_REPO   = "aahaas-frontend"
         IMAGE_TAG  = "${BUILD_NUMBER}"
-        CONTAINER  = "aahaas-frontend"
+        CONTAINER  = "aahaas-frontend-v2"
         APP_PORT   = "3000"
     }
     stages {
@@ -100,3 +100,4 @@ pipeline {
         }
     }
 }
+
