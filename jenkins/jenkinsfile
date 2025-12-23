@@ -8,82 +8,69 @@ pipeline {
         IMAGE_TAG  = "${BUILD_NUMBER}"
         CONTAINER  = "aahaas-frontend-v2"
         APP_PORT   = "3000"
+        ECR_URI    = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
     }
+
     stages {
 
-        stage('Checkout') {
+        stage('Checkout Source') {
             steps {
                 checkout scm
             }
         }
 
-    
-
         stage('Build Docker Image') {
             steps {
-                sh """
+                sh '''
                 docker build -t ${ECR_REPO}:${IMAGE_TAG} .
-                """
+                '''
             }
         }
 
-        stage('Login to ECR') {
+        stage('Login to Amazon ECR') {
             steps {
-                sh """
-                aws ecr get-login-password --region ${AWS_REGION} | \
-                docker login --username AWS --password-stdin \
-                ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
-                """
+                sh '''
+                aws ecr get-login-password --region ${AWS_REGION} \
+                | docker login --username AWS --password-stdin ${ECR_URI}
+                '''
             }
         }
 
-        stage('Push Image') {
+        stage('Tag & Push Image to ECR') {
             steps {
-                sh """
+                sh '''
                 docker tag ${ECR_REPO}:${IMAGE_TAG} \
-                ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
+                ${ECR_URI}/${ECR_REPO}:${IMAGE_TAG}
 
-                docker push \
-                ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
-                """
+                docker push ${ECR_URI}/${ECR_REPO}:${IMAGE_TAG}
+                '''
             }
         }
 
-        /* ✅ NEW STAGE 1 */
-        stage('Pull Image from ECR') {
+        stage('Deploy on EC2 (Docker Run)') {
             steps {
-                sh """
-                docker pull \
-                ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
-                """
-            }
-        }
-
-        /* ✅ NEW STAGE 2 */
-        stage('Deploy on EC2') {
-            steps {
-                sh """
+                sh '''
                 docker stop ${CONTAINER} || true
                 docker rm ${CONTAINER} || true
+
+                docker pull ${ECR_URI}/${ECR_REPO}:${IMAGE_TAG}
 
                 docker run -d \
                   --name ${CONTAINER} \
                   -p ${APP_PORT}:${APP_PORT} \
                   --restart always \
-                  ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
-                """
+                  ${ECR_URI}/${ECR_REPO}:${IMAGE_TAG}
+                '''
             }
         }
     }
 
     post {
         success {
-            echo "✅ SonarQube + Build + Push + Deploy completed successfully"
+            echo "✅ Build → Push → Deploy completed successfully"
         }
         failure {
-            echo "❌ Pipeline FAILED"
+            echo "❌ Pipeline failed"
         }
     }
 }
-
-
