@@ -1,0 +1,17 @@
+cat <<EOF > .gitignore
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/devops-key
+terraform/devops-key.pub
+
+# Node / Next.js
+node_modules/
+.next/
+
+# OS
+.DS_Store
+EOF
+
