@@ -9,7 +9,7 @@ resource "aws_instance" "devops" {
   user_data = file("user_data_jenkins.sh")
 
   tags = {
-    Name = "jenkins-server"
+    Name = "devops-automation"
   }
 }
 
